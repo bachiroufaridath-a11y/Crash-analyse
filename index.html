@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#101827">
+<title>Crash — Analyse statistique</title>
+<style>
+:root{color-scheme:dark;--bg:#0b1220;--card:#131e30;--text:#eef4ff;--muted:#a8b6cc;--line:#2a3a53;--accent:#63e6be;--warn:#ffd166;--red:#ff7b85}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(160deg,#101c31,#090f1b 65%);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:var(--text);padding:18px;line-height:1.45}
+main{max-width:720px;margin:auto}.hero{padding:12px 2px 18px}.tag{display:inline-block;border:1px solid #36506e;color:var(--accent);border-radius:999px;padding:5px 10px;font-size:12px;font-weight:700;letter-spacing:.04em}h1{font-size:29px;margin:12px 0 6px}p{color:var(--muted);margin:8px 0}.card{background:rgba(19,30,48,.96);border:1px solid var(--line);border-radius:18px;padding:17px;margin:13px 0;box-shadow:0 12px 35px #0002}h2{font-size:17px;margin:0 0 12px}.row{display:flex;gap:9px;flex-wrap:wrap}.row>*{flex:1;min-width:120px}input,button{font:inherit;border-radius:12px;padding:12px;border:1px solid var(--line)}input{background:#0b1423;color:var(--text);width:100%;min-width:0}button{background:var(--accent);color:#092017;font-weight:800;border:0;cursor:pointer}button.secondary{background:#26374f;color:var(--text);border:1px solid #3a4e6b}button.danger{background:#49252f;color:#ffe4e7;border:1px solid #75414b}.small{font-size:12px}.stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.stat{background:#0b1423;border:1px solid var(--line);padding:13px;border-radius:13px}.num{font-size:24px;font-weight:800;margin-top:4px}.label{color:var(--muted);font-size:12px}.pill{display:inline-block;padding:5px 9px;border-radius:99px;background:#26374f;font-size:12px;margin:3px}.pill.low{color:var(--accent)}.pill.mid{color:var(--warn)}.pill.high{color:var(--red)}.results{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px}.mult{background:#0b1423;border:1px solid var(--line);border-radius:9px;padding:7px 9px;font-size:13px}.mult.low{border-color:#8e4851;color:#ff9aa1}.mult.mid{border-color:#8d7440;color:#ffdf8d}.mult.high{border-color:#347b69;color:#8af0d1}.notice{border-left:3px solid var(--warn);padding:8px 11px;background:#292719;border-radius:6px;color:#f4e9bd;font-size:13px}.estimate{border:1px solid #347b69;background:linear-gradient(135deg,#10342f,#101e2d);padding:16px;border-radius:15px;margin:12px 0}.estimate .num{font-size:32px;color:var(--accent)}.footer{font-size:12px;color:var(--muted);padding:8px 2px 24px}#message{min-height:20px;color:var(--accent);font-size:13px;margin-top:8px}
+</style>
+</head>
+<body><main>
+<header class="hero">
+<span class="tag">OUTIL PERSONNEL · GRATUIT</span>
+<h1>Crash — Analyse statistique</h1>
+<p>Un tableau de suivi des multiplicateurs pour Aviator/Crash. Saisis les résultats observés pour consulter les statistiques descriptives.</p>
+</header>
+<section class="card">
+<h2>1. Ajouter un résultat</h2>
+<form id="form" class="row">
+<div><label class="small" for="multiplier">Multiplicateur (ex. 1.75)</label><input id="multiplier" type="number" min="1" max="1000000" step="0.01" placeholder="Ex. 1.75" required></div>
+<div style="align-self:end"><button type="submit" style="width:100%">Ajouter</button></div>
+</form>
+<div id="message" aria-live="polite"></div>
+<p class="small">Entre le multiplicateur affiché à la fin d'une manche, sans le « x ».</p>
+<div class="row"><button id="undo" class="secondary" type="button">Annuler le dernier</button><button id="clear" class="danger" type="button">Effacer l'historique</button></div>
+</section>
+<section class="card">
+<h2>2. Estimation expérimentale du prochain tour</h2>
+<p>Cette estimation résume les multiplicateurs récemment saisis. Elle ne prédit pas le résultat réel et ne doit pas servir de signal de mise.</p>
+<div class="estimate">
+<div class="label">Repère expérimental (médiane des 10 derniers résultats)</div>
+<div class="num" id="estimate">—</div>
+<div class="label" id="estimateInfo">Ajoute au moins un résultat pour calculer un repère.</div>
+</div>
+<div class="row"><button id="estimateBtn" class="secondary" type="button">Actualiser l’estimation</button></div>
+<div class="notice" style="margin-top:12px">Aucune confiance prédictive ne peut être établie à partir de l’historique seul. Le prochain multiplicateur reste inconnu.</div>
+</section>
+<section class="card">
+<h2>3. Tes statistiques</h2>
+<div class="stats">
+<div class="stat"><div class="label">Manches saisies</div><div class="num" id="count">0</div></div>
+<div class="stat"><div class="label">Moyenne observée</div><div class="num" id="avg">—</div></div>
+<div class="stat"><div class="label">Résultats sous 2x</div><div class="num" id="under2">—</div><div class="label">Part de l'historique saisi</div></div>
+<div class="stat"><div class="label">Résultats à 2x ou plus</div><div class="num" id="over2">—</div><div class="label">Part de l'historique saisi</div></div>
+</div>
+<p style="margin-top:13px">Répartition de l'historique saisi :</p>
+<div id="bands"></div>
+</section>
+<section class="card">
+<h2>4. Historique récent</h2>
+<p class="small">Les dernières manches saisies apparaissent en premier. Les données restent enregistrées sur cet appareil dans ce navigateur.</p>
+<div id="history" class="results"><span class="small">Aucun résultat pour le moment.</span></div>
+</section>
+<section class="card">
+<h2>À savoir avant de jouer</h2>
+<div class="notice">Cet outil ne prédit pas la prochaine manche et ne produit pas de « signal fiable ». Si le jeu utilise un système aléatoire indépendant, les anciens multiplicateurs ne révèlent pas le prochain résultat.</div>
+<p>Une moyenne ou une série passée ne garantit pas ce qui va arriver. Ne mise pas davantage pour récupérer une perte et n'utilise pas ces statistiques comme promesse de gain.</p>
+</section>
+<div class="footer">Analyse locale uniquement : aucune connexion au jeu, aucun accès aux résultats cachés, aucun pari automatique et aucune donnée envoyée à un serveur.</div>
+</main>
+<script>
+const KEY='crash_stats_fr_v1';let values=[];
+try{values=JSON.parse(localStorage.getItem(KEY)||'[]');if(!Array.isArray(values))values=[];}catch(e){values=[]}
+const $=id=>document.getElementById(id);
+const fmt=n=>n.toLocaleString('fr-FR',{maximumFractionDigits:2});
+function save(){try{localStorage.setItem(KEY,JSON.stringify(values));}catch(e){$('message').textContent='Impossible de sauvegarder dans ce navigateur.'}render();}
+function render(){
+ const n=values.length;$('count').textContent=n;
+ $('avg').textContent=n?fmt(values.reduce((a,b)=>a+b,0)/n)+'x':'—';
+ const u=values.filter(v=>v<2).length,o=values.filter(v=>v>=2).length;
+ $('under2').textContent=n?`${u} (${fmt(u/n*100)}%)`:'—';$('over2').textContent=n?`${o} (${fmt(o/n*100)}%)`:'—';
+ const ranges=[['1x à <1,5x',v=>v<1.5],['1,5x à <2x',v=>v>=1.5&&v<2],['2x à <5x',v=>v>=2&&v<5],['5x et plus',v=>v>=5]];
+ $('bands').innerHTML=n?ranges.map(([label,test])=>{let c=values.filter(test).length;return `<div style="display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid var(--line);padding:8px 0"><span>${label}</span><strong>${c} (${fmt(c/n*100)}%)</strong></div>`}).join(''):'<span class="small">Ajoute quelques résultats pour voir la répartition.</span>';
+ $('history').innerHTML=n?[...values].reverse().slice(0,60).map(v=>`<span class="mult ${v<1.5?'low':v<2?'mid':'high'}">${fmt(v)}x</span>`).join(''):'<span class="small">Aucun résultat pour le moment.</span>';
+ updateEstimate();
+}
+function updateEstimate(){
+ const recent=values.slice(-10).slice().sort((a,b)=>a-b);
+ if(!recent.length){$('estimate').textContent='—';$('estimateInfo').textContent='Ajoute au moins un résultat pour calculer un repère.';return;}
+ const mid=Math.floor(recent.length/2);
+ const med=recent.length%2?recent[mid]:(recent[mid-1]+recent[mid])/2;
+ $('estimate').textContent=fmt(med)+'x';
+ $('estimateInfo').textContent=`Médiane des ${recent.length} dernier(s) résultat(s) saisi(s) — ce n’est pas le multiplicateur du prochain tour.`;
+}
+$('form').addEventListener('submit',e=>{e.preventDefault();let v=Number($('multiplier').value);if(!Number.isFinite(v)||v<1){$('message').textContent='Entre un multiplicateur valide égal ou supérieur à 1.';return}values.push(Math.round(v*100)/100);$('multiplier').value='';$('message').textContent='Résultat ajouté.';save();});
+$('undo').addEventListener('click',()=>{if(values.length){values.pop();$('message').textContent='Dernier résultat supprimé.';save()}});
+$('clear').addEventListener('click',()=>{if(confirm('Effacer tout l’historique enregistré sur cet appareil ?')){values=[];$('message').textContent='Historique effacé.';save()}});\n$('estimateBtn').addEventListener('click',()=>{updateEstimate();$('message').textContent='Repère statistique actualisé.';});
+render();
+</script></body></html>
